@@ -12,10 +12,10 @@ app.get("/", (req, res) => {
 });
 
 app.post("/webhook", async (req, res) => {
-  const events = req.body.events;
+  const events = req.body.events || [];
 
   for (const event of events) {
-    if (event.type === "message") {
+    if (event.type === "message" && event.message?.type === "text") {
       const userMessage = event.message.text;
 
       const difyRes = await axios.post(
@@ -24,27 +24,29 @@ app.post("/webhook", async (req, res) => {
           inputs: {},
           query: userMessage,
           response_mode: "blocking",
-          user: "user",
+          user: "user"
         },
         {
           headers: {
             Authorization: `Bearer ${DIFY_API_KEY}`,
-          },
+            "Content-Type": "application/json"
+          }
         }
       );
 
-      const reply = difyRes.data.answer;
+      const reply = difyRes.data.answer || "返信できませんでした";
 
       await axios.post(
         "https://api.line.me/v2/bot/message/reply",
         {
           replyToken: event.replyToken,
-          messages: [{ type: "text", text: reply }],
+          messages: [{ type: "text", text: reply }]
         },
         {
           headers: {
             Authorization: `Bearer ${LINE_TOKEN}`,
-          },
+            "Content-Type": "application/json"
+          }
         }
       );
     }
