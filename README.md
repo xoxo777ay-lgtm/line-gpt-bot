@@ -1,1 +1,2 @@
-# line-gpt-bot
+LINE_TOKEN = hY0eeIvLyCI3J7wN0Br5cfYKPQI7bWMR3aHIKkH9JojSGwwgOECdxsDgJAu1eTQnp7vGvcjxusoCEFr2p06u2Ijgk5UktQ6dsf/dLZ0alBzVRmcKEIKnoNCasdhfUtCfeMQvPzx6cJnll0msVmrnYwdB04t89/1O/w1cDnyilFU=
+DIFY_API_KEY = app-o5FUA8X6aiGk6dNaqca1fTy2
