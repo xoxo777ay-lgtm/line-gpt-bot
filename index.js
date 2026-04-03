@@ -12,10 +12,16 @@ app.get("/", (req, res) => {
 });
 
 app.post("/webhook", async (req, res) => {
-  const events = req.body.events || [];
+  // まず先に 200 を返す
+  res.status(200).send("OK");
 
-  for (const event of events) {
-    if (event.type === "message" && event.message?.type === "text") {
+  try {
+    const events = req.body?.events || [];
+
+    for (const event of events) {
+      if (event.type !== "message") continue;
+      if (event.message?.type !== "text") continue;
+
       const userMessage = event.message.text;
 
       const difyRes = await axios.post(
@@ -24,7 +30,7 @@ app.post("/webhook", async (req, res) => {
           inputs: {},
           query: userMessage,
           response_mode: "blocking",
-          user: "user"
+          user: event.source?.userId || "line-user"
         },
         {
           headers: {
@@ -34,7 +40,7 @@ app.post("/webhook", async (req, res) => {
         }
       );
 
-      const reply = difyRes.data.answer || "返信できませんでした";
+      const reply = difyRes.data.answer || "返信できませんでした。";
 
       await axios.post(
         "https://api.line.me/v2/bot/message/reply",
@@ -50,9 +56,9 @@ app.post("/webhook", async (req, res) => {
         }
       );
     }
+  } catch (error) {
+    console.error("Webhook error:", error.response?.data || error.message);
   }
-
-  res.send("OK");
 });
 
 app.listen(3000, () => console.log("Running"));
