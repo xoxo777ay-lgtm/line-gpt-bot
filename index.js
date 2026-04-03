@@ -4,8 +4,8 @@ import axios from "axios";
 const app = express();
 app.use(express.json());
 
-const LINE_TOKEN = "hY0eeIvLyCI3J7wN0Br5cfYKPQI7bWMR3aHIKkH9JojSGwwgOECdxsDgJAu1eTQnp7vGvcjxusoCEFr2p06u2Ijgk5UktQ6dsf/dLZ0alBzVRmcKEIKnoNCasdhfUtCfeMQvPzx6cJnll0msVmrnYwdB04t89/1O/w1cDnyilFU=";
-const DIFY_API_KEY = "app-o5FUA8X6aiGk6dNaqca1fTy2";
+const LINE_TOKEN = process.env.LINE_TOKEN;
+const DIFY_API_KEY = process.env.DIFY_API_KEY;
 
 app.post("/webhook", async (req, res) => {
   const event = req.body.events?.[0];
