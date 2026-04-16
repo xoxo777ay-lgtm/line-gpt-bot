@@ -22,7 +22,7 @@ app.post("/webhook", async (req, res) => {
             inputs: {},
             query: userMessage,
             response_mode: "blocking",
-            user: "line-user",
+            user: event.source.userId || "line-user"
           },
           {
             headers: {
@@ -58,9 +58,10 @@ app.post("/webhook", async (req, res) => {
     }
   }
 
-  res.sendStatus(200);
+  res.status(200).send("OK");
 });
 
-app.listen(3000, () => {
-  console.log("Server running on port 3000");
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
