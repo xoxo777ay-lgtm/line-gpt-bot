@@ -24,6 +24,11 @@ app.post("/webhook", async (req, res) => {
     // 前回の会話IDを取得
     const conversationId = conversationStore.get(lineUserId) || "";
 
+    console.log("===== REQUEST =====");
+    console.log("lineUserId:", lineUserId);
+    console.log("conversationId(before):", conversationId);
+    console.log("userMessage:", userMessage);
+
     try {
       const difyRes = await axios.post(
         "https://api.dify.ai/v1/chat-messages",
@@ -41,10 +46,11 @@ app.post("/webhook", async (req, res) => {
           },
         }
       );
-console.log("lineUserId:", lineUserId);
-console.log("conversationId(before):", conversationId);
-console.log("newConversationId(after):", difyRes.data.conversation_id);
-console.log("answer:", difyRes.data.answer);
+
+      console.log("===== RESPONSE =====");
+      console.log("newConversationId(after):", difyRes.data.conversation_id);
+      console.log("answer:", difyRes.data.answer);
+
       // 新しいconversation_idを保存
       const newConversationId = difyRes.data.conversation_id;
       if (newConversationId) {
