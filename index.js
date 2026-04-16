@@ -41,7 +41,10 @@ app.post("/webhook", async (req, res) => {
           },
         }
       );
-
+console.log("lineUserId:", lineUserId);
+console.log("conversationId(before):", conversationId);
+console.log("newConversationId(after):", difyRes.data.conversation_id);
+console.log("answer:", difyRes.data.answer);
       // 新しいconversation_idを保存
       const newConversationId = difyRes.data.conversation_id;
       if (newConversationId) {
