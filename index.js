@@ -5,7 +5,7 @@ const app = express();
 app.use(express.json());
 
 const LINE_CHANNEL_ACCESS_TOKEN = "hY0eeIvLyCI3J7wN0Br5cfYKPQI7bWMR3aHIKkH9JojSGwwgOECdxsDgJAu1eTQnp7vGvcjxusoCEFr2p06u2Ijgk5UktQ6dsf/dLZ0alBzVRmcKEIKnoNCasdhfUtCfeMQvPzx6cJnll0msVmrnYwdB04t89/1O/w1cDnyilFU=";
-const DIFY_API_KEY = "app-OAzhnMEqbIlkCdTR94ygphHW";
+const DIFY_API_KEY = "app-JiVYwUws27NIRP6c0VfkE3Eo";
 
 app.post("/webhook", async (req, res) => {
   const events = req.body.events;
