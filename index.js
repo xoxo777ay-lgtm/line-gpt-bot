@@ -4,61 +4,63 @@ import axios from "axios";
 const app = express();
 app.use(express.json());
 
-const LINE_TOKEN = process.env.LINE_TOKEN;
-const DIFY_API_KEY = process.env.DIFY_API_KEY;
-
-app.get("/", (req, res) => {
-  res.send("OK");
-});
+const LINE_CHANNEL_ACCESS_TOKEN = "hY0eeIvLyCI3J7wN0Br5cfYKPQI7bWMR3aHIKkH9JojSGwwgOECdxsDgJAu1eTQnp7vGvcjxusoCEFr2p06u2Ijgk5UktQ6dsf/dLZ0alBzVRmcKEIKnoNCasdhfUtCfeMQvPzx6cJnll0msVmrnYwdB04t89/1O/w1cDnyilFU=";
+const DIFY_API_KEY = "app-OAzhnMEqbIlkCdTR94ygphHW";
 
 app.post("/webhook", async (req, res) => {
-  // まず先に 200 を返す
-  res.status(200).send("OK");
+  const events = req.body.events;
 
-  try {
-    const events = req.body?.events || [];
-
-    for (const event of events) {
-      if (event.type !== "message") continue;
-      if (event.message?.type !== "text") continue;
-
+  for (const event of events) {
+    if (event.type === "message" && event.message.type === "text") {
       const userMessage = event.message.text;
+      const replyToken = event.replyToken;
 
-      const difyRes = await axios.post(
-        "https://api.dify.ai/v1/chat-messages",
-        {
-          inputs: {},
-          query: userMessage,
-          response_mode: "blocking",
-          user: event.source?.userId || "line-user"
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${DIFY_API_KEY}`,
-            "Content-Type": "application/json"
+      try {
+        const difyRes = await axios.post(
+          "https://api.dify.ai/v1/chat-messages",
+          {
+            inputs: {},
+            query: userMessage,
+            response_mode: "blocking",
+            user: "line-user",
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${DIFY_API_KEY}`,
+              "Content-Type": "application/json",
+            },
           }
-        }
-      );
+        );
 
-      const reply = difyRes.data.answer || "返信できませんでした。";
+        const replyText = difyRes.data.answer;
 
-      await axios.post(
-        "https://api.line.me/v2/bot/message/reply",
-        {
-          replyToken: event.replyToken,
-          messages: [{ type: "text", text: reply }]
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${LINE_TOKEN}`,
-            "Content-Type": "application/json"
+        await axios.post(
+          "https://api.line.me/v2/bot/message/reply",
+          {
+            replyToken: replyToken,
+            messages: [
+              {
+                type: "text",
+                text: replyText,
+              },
+            ],
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
+              "Content-Type": "application/json",
+            },
           }
-        }
-      );
+        );
+      } catch (error) {
+        console.error(error);
+      }
     }
-  } catch (error) {
-    console.error("Webhook error:", error.response?.data || error.message);
   }
+
+  res.sendStatus(200);
 });
 
-app.listen(3000, () => console.log("Running"));
+app.listen(3000, () => {
+  console.log("Server running on port 3000");
+});
