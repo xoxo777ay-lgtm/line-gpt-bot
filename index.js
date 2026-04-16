@@ -7,20 +7,21 @@ app.use(express.json());
 const LINE_CHANNEL_ACCESS_TOKEN = "hY0eeIvLyCI3J7wN0Br5cfYKPQI7bWMR3aHIKkH9JojSGwwgOECdxsDgJAu1eTQnp7vGvcjxusoCEFr2p06u2Ijgk5UktQ6dsf/dLZ0alBzVRmcKEIKnoNCasdhfUtCfeMQvPzx6cJnll0msVmrnYwdB04t89/1O/w1cDnyilFU=";
 const DIFY_API_KEY = "app-JiVYwUws27NIRP6c0VfkE3Eo";
 
-// 本番はDB推奨。まずは簡易保存でOK
+// LINEユーザーごとにDifyのconversation_idを保存
 const conversationStore = new Map();
 
 app.post("/webhook", async (req, res) => {
   const events = req.body.events || [];
 
   for (const event of events) {
-    if (event.type !== "message" || event.message.type !== "text") continue;
+    if (event.type !== "message") continue;
+    if (event.message.type !== "text") continue;
 
     const userMessage = event.message.text;
     const replyToken = event.replyToken;
     const lineUserId = event.source?.userId || "line-user";
 
-    // 前回の conversation_id を取得
+    // 前回の会話IDを取得
     const conversationId = conversationStore.get(lineUserId) || "";
 
     try {
@@ -41,19 +42,25 @@ app.post("/webhook", async (req, res) => {
         }
       );
 
-      // 新しい conversation_id を保存
+      // 新しいconversation_idを保存
       const newConversationId = difyRes.data.conversation_id;
       if (newConversationId) {
         conversationStore.set(lineUserId, newConversationId);
       }
 
-      const replyText = difyRes.data.answer || "うまく返答できませんでした。";
+      const replyText =
+        difyRes.data.answer || "うまく返答できませんでした。";
 
       await axios.post(
         "https://api.line.me/v2/bot/message/reply",
         {
-          replyToken,
-          messages: [{ type: "text", text: replyText }],
+          replyToken: replyToken,
+          messages: [
+            {
+              type: "text",
+              text: replyText,
+            },
+          ],
         },
         {
           headers: {
@@ -67,10 +74,40 @@ app.post("/webhook", async (req, res) => {
         "Dify/LINE error:",
         error.response?.data || error.message
       );
+
+      try {
+        await axios.post(
+          "https://api.line.me/v2/bot/message/reply",
+          {
+            replyToken: replyToken,
+            messages: [
+              {
+                type: "text",
+                text: "ごめんなさい、今ちょっと返答が不安定です。少ししてからもう一度送ってください🙏",
+              },
+            ],
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+      } catch (replyError) {
+        console.error(
+          "LINE reply error:",
+          replyError.response?.data || replyError.message
+        );
+      }
     }
   }
 
   res.status(200).send("OK");
+});
+
+app.get("/", (req, res) => {
+  res.send("LINE x Dify bot is running.");
 });
 
 const PORT = process.env.PORT || 3000;
