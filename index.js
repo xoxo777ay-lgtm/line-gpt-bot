@@ -4,13 +4,20 @@ import axios from "axios";
 const app = express();
 app.use(express.json());
 
-const LINE_CHANNEL_ACCESS_TOKEN = "hY0eeIvLyCI3J7wN0Br5cfYKPQI7bWMR3aHIKkH9JojSGwwgOECdxsDgJAu1eTQnp7vGvcjxusoCEFr2p06u2Ijgk5UktQ6dsf/dLZ0alBzVRmcKEIKnoNCasdhfUtCfeMQvPzx6cJnll0msVmrnYwdB04t89/1O/w1cDnyilFU=";
-const DIFY_API_KEY = "app-JiVYwUws27NIRP6c0VfkE3Eo";
+const LINE_TOKEN = process.env.LINE_TOKEN;
+const DIFY_API_KEY = process.env.DIFY_API_KEY;
+const DIFY_API_URL =
+  process.env.DIFY_API_URL || "https://api.dify.ai/v1/chat-messages";
 
-// LINEユーザーごとにDifyのconversation_idを保存
 const conversationStore = new Map();
 
+app.get("/", (req, res) => {
+  res.send("LINE x Dify bot is running.");
+});
+
 app.post("/webhook", async (req, res) => {
+  res.status(200).send("OK");
+
   const events = req.body.events || [];
 
   for (const event of events) {
@@ -20,24 +27,17 @@ app.post("/webhook", async (req, res) => {
     const userMessage = event.message.text;
     const replyToken = event.replyToken;
     const lineUserId = event.source?.userId || "line-user";
-
-    // 前回の会話IDを取得
     const conversationId = conversationStore.get(lineUserId) || "";
-
-    console.log("===== REQUEST =====");
-    console.log("lineUserId:", lineUserId);
-    console.log("conversationId(before):", conversationId);
-    console.log("userMessage:", userMessage);
 
     try {
       const difyRes = await axios.post(
-        "https://api.dify.ai/v1/chat-messages",
+        DIFY_API_URL,
         {
           inputs: {},
           query: userMessage,
           response_mode: "blocking",
           user: lineUserId,
-          conversation_id: conversationId
+          conversation_id: conversationId,
         },
         {
           headers: {
@@ -47,76 +47,29 @@ app.post("/webhook", async (req, res) => {
         }
       );
 
-      console.log("===== RESPONSE =====");
-      console.log("newConversationId(after):", difyRes.data.conversation_id);
-      console.log("answer:", difyRes.data.answer);
+      const answer = difyRes.data.answer || "うまく返答できませんでした。";
 
-      // 新しいconversation_idを保存
-      const newConversationId = difyRes.data.conversation_id;
-      if (newConversationId) {
-        conversationStore.set(lineUserId, newConversationId);
+      if (difyRes.data.conversation_id) {
+        conversationStore.set(lineUserId, difyRes.data.conversation_id);
       }
-
-      const replyText =
-        difyRes.data.answer || "うまく返答できませんでした。";
 
       await axios.post(
         "https://api.line.me/v2/bot/message/reply",
         {
-          replyToken: replyToken,
-          messages: [
-            {
-              type: "text",
-              text: replyText,
-            },
-          ],
+          replyToken,
+          messages: [{ type: "text", text: answer }],
         },
         {
           headers: {
-            Authorization: `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
+            Authorization: `Bearer ${LINE_TOKEN}`,
             "Content-Type": "application/json",
           },
         }
       );
     } catch (error) {
-      console.error(
-        "Dify/LINE error:",
-        error.response?.data || error.message
-      );
-
-      try {
-        await axios.post(
-          "https://api.line.me/v2/bot/message/reply",
-          {
-            replyToken: replyToken,
-            messages: [
-              {
-                type: "text",
-                text: "ごめんなさい、今ちょっと返答が不安定です。少ししてからもう一度送ってください🙏",
-              },
-            ],
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-      } catch (replyError) {
-        console.error(
-          "LINE reply error:",
-          replyError.response?.data || replyError.message
-        );
-      }
+      console.error("ERROR:", error.response?.data || error.message);
     }
   }
-
-  res.status(200).send("OK");
-});
-
-app.get("/", (req, res) => {
-  res.send("LINE x Dify bot is running.");
 });
 
 const PORT = process.env.PORT || 3000;
